@@ -13,6 +13,22 @@ bool ledStatus = false;
 long scanTime = 0;
 bool scanPending = false;
 
+void readChipTemperature() {
+  // https://docs.espressif.com/projects/arduino-esp32/en/latest/api/temp_sensor.html
+  // temperatureRead() is built into arduino-esp32 core >= 2.x, no include needed
+  // Returns die temperature in Celsius — expect ~5–10°C above ambient at idle
+  float tempC = temperatureRead();
+  float tempF = (tempC * 9.0 / 5.0) + 32.0;
+
+  Serial.printf("\n--- Chip Temperature ---\n");
+  Serial.printf("  %.1f °C  /  %.1f °F\n", tempC, tempF);
+
+  // 53.33°C (raw value 128) is the sentinel for "sensor not available"
+  if (tempC == 53.33f) {
+    Serial.println("  [WARN] Reading may be invalid (got sentinel value 53.33)");
+  }
+}
+
 void blinkLED(){
   if(millis() - ledTime > 300){
     ledTime += 300;
@@ -90,8 +106,10 @@ void loop() {
   blinkLED();
 
   if (!scanPending && millis() - scanTime > 20000) {
+    readChipTemperature(); // read internal temperature sensor
     scanTime = millis();
     startWiFiScan();
+    
   }
 
   if (scanPending) {
